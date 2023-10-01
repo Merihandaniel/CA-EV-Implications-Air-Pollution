@@ -25,7 +25,7 @@ Additionally, the linear regression  performed in R for AQI and Ozone mean yield
 
 Lastly, the results of the Decision Tree showed that if a county has a number of electric vehicles greater or equal to that 14.07 EV per 1000 people, I would expect to see an AQI of 44.76. If the number of EV is less than 14.07, the AQI. I could expect to see is 57.54. On the other hand, for any county that has greater than or equal to 21.84 EV per 1000, I would expect to see ozone levels of 0.02571, otherwise, 0.03174. Therefore, as presented by these results, I can say that the increase in the total number of EV could help decrease the levels of AQI and Ozone which would improve air quality overall.
 
-![Alt Text](DT_Analysis.png)
+![Image Alt Text](DT_Analysis.png)
 
 # Conclusion
 
