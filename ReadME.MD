@@ -8,6 +8,8 @@ Electric vehicles offer several advantages, including reduced emissions, improve
 
 The data was analyzed in a three step regression process: correlation, linear regression, and regression trees.
 
+# Results
+
 Analysis of EV sales and population, and analysis of the correlation between total registered vehicles with the selected air pollutants. When I analyzed the electric vehicle sales and registration data sourced from the California Department of Energy, it was observed that both number of sales and registered vehicles showed an increase year over year from 2020-2021. When comparing the total number of registered EV to that of combustion vehicles, the proportion also increased every year going from 1.39% in 2020, to 1.87% in 2021 and 2.81% in 2022. This proportion doubling during the span of two years suggests that more people are buying electric vehicles in comparison to the counterpart. Something interesting that I noticed during this part of my study is that in 2022, the total number of registered combustion vehicles actually decreased. 
 
 ![Alt Text](Set_Analysis.png)
