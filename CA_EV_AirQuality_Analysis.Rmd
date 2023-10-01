@@ -1,0 +1,309 @@
+---
+title: "4441_Project"
+output: word_document
+date: "2023-08-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(readr)
+library(maps)
+library(mapdata)
+library(ggpubr)
+library(rpart)
+library(rpart.plot)
+```
+
+## Reading In All Data Sets
+
+```{r}
+AQI_All <-read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/CA_AQI.csv")
+HAPs_All <- read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/CA_HAPs.csv")
+Ozone_All <- read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/CA_Ozone.csv")
+NO2_All <- read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/CA_NO2.csv")
+EV_Sales <- read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/Total_EV_sales_per_county.csv")
+EV_Pops <- read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/Total_EV_pop_per_county.csv")
+CA_Pop <- read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/CA_population.csv")
+
+# Updating Names & Removing Columns 
+AQI_All <- AQI_All[,-1]
+HAPs_All <- HAPs_All[,-1]
+Ozone_All <- Ozone_All[,-1]
+NO2_All <- NO2_All[,-1]
+colnames(AQI_All) = c('County', 'Date', 'AQI', 'Year', 'Month_Year')
+colnames(HAPs_All) = c('County', 'Date', 'HAPs_ppb', 'Year', 'Month_Year')
+colnames(Ozone_All) = c('County', 'Date', 'Ozone_ppm', 'Year', 'Month_Year')
+colnames(NO2_All) = c('County', 'Date', 'NO2_ppb', 'Year', 'Month_Year')
+colnames(CA_Pop) = c('County', 'Population_2020', 'Population_2021', 'Population_2022')
+CA_Pop$County<-str_to_lower(CA_Pop$County)
+CA_Pop <- gather(CA_Pop, Year, population, Population_2020:Population_2022, factor_key = TRUE)
+CA_Pop$Year <- sub("Population_","", CA_Pop$Year)
+CA_Pop$Year <- as.Date(CA_Pop$Year, "%Y")
+CA_Pop$Year <- year(CA_Pop$Year)
+
+
+#Combining Pollution into 1 DataFrame
+df_list <- list(AQI_All, HAPs_All)
+All_Pollutants <- df_list %>% reduce(full_join, by=c('County','Date'))
+All_Pollutants <- All_Pollutants[,-7:-8]
+new_df_list <- list(All_Pollutants, Ozone_All)
+All_Pollutants <- new_df_list %>% reduce(full_join, by=c('County','Date'))
+All_Pollutants <- All_Pollutants[,-8:-9]
+final_df_list <- list(All_Pollutants, NO2_All)
+All_Pollutants <- final_df_list %>% reduce(full_join, by=c('County','Date'))
+All_Pollutants <- All_Pollutants[,-9:-10]
+
+#Updating & Re-Ordering Columns
+colnames(All_Pollutants) = c('County','Date','AQI', 'Year', 'Month_Year', 'HAPs_ppb', 'Ozone_ppm','NO2_ppb')
+All_Pollutants <- All_Pollutants[,c('County','Year','Month_Year','Date','AQI','HAPs_ppb','Ozone_ppm', 'NO2_ppb')]
+All_Pollutants['Year'] <- year(All_Pollutants$Date)
+m <- month(All_Pollutants$Date)
+y <- year(All_Pollutants$Date)
+MYr <- lubridate::my(paste(m,"/",y))
+All_Pollutants['Month_Year'] <- MYr
+All_Pollutants$County<-str_to_lower(All_Pollutants$County)
+
+#Dealing with EV
+EV_Pops <- EV_Pops[,-1]
+colnames(EV_Pops) = c('County', 'Year', 'Total_EVs')
+EV_Pops$County<-str_to_lower(EV_Pops$County)
+df_list <- list(EV_Pops, CA_Pop)
+EV_Pops <- df_list %>% reduce(full_join, by=c('County','Year'))
+EV_Pops$population <- as.numeric(EV_Pops$population)
+EV_Pops["EV_Totals_1000"] <- (EV_Pops$Total_EVs/EV_Pops$population)*1000
+
+
+
+```
+
+## Simple Data Analysis
+```{r}
+#AQI
+AQI_County <- All_Pollutants %>% group_by(County) %>% summarize(mean = mean(AQI, na.rm=TRUE), SD = sd(AQI, na.rm=TRUE), SE = (sd(AQI, na.rm=TRUE)/sqrt(n())))
+
+AQI_Year <- All_Pollutants %>% group_by(Year) %>% summarize(mean = mean(AQI, na.rm= TRUE), SD = sd(AQI, na.rm=TRUE), SE = (sd(AQI, na.rm=TRUE)/sqrt(n())))
+
+AQI_County_Yr <- All_Pollutants %>% group_by(County, Year) %>% summarize(mean = mean(AQI, na.rm=T), SD = sd(AQI, na.rm=T), SE = (sd(AQI, na.rm=T)/sqrt(n())))
+
+AQI_County_MYr <- All_Pollutants %>% group_by(County, Month_Year) %>% summarize(mean = mean(AQI, na.rm=T), SD = sd(AQI, na.rm=T), SE = (sd(AQI, na.rm=T)/sqrt(n())))
+
+# HAPs
+HAPs_County <- All_Pollutants %>% group_by(County) %>% summarize(mean = mean(HAPs_ppb, na.rm=TRUE), SD = sd(HAPs_ppb, na.rm=TRUE), SE = (sd(HAPs_ppb, na.rm=TRUE)/sqrt(n())))
+
+HAPs_Year <- All_Pollutants %>% group_by(Year) %>% summarize(mean = mean(HAPs_ppb, na.rm= TRUE), SD = sd(HAPs_ppb, na.rm=TRUE), SE = (sd(HAPs_ppb, na.rm=TRUE)/sqrt(n())))
+
+HAPs_County_Yr <- All_Pollutants %>% group_by(County, Year) %>% summarize(mean = mean(HAPs_ppb, na.rm=T), SD = sd(HAPs_ppb, na.rm=T), SE = (sd(HAPs_ppb, na.rm=T)/sqrt(n())))
+
+HAPs_County_MYr <- All_Pollutants %>% group_by(County, Month_Year) %>% summarize(mean = mean(HAPs_ppb, na.rm=T), SD = sd(HAPs_ppb, na.rm=T), SE = (sd(HAPs_ppb, na.rm=T)/sqrt(n())))
+
+#NO2
+NO2_County <- All_Pollutants %>% group_by(County) %>% summarize(mean = mean(NO2_ppb, na.rm=TRUE), SD = sd(NO2_ppb, na.rm=TRUE), SE = (sd(NO2_ppb, na.rm=TRUE)/sqrt(n())))
+
+NO2_Year <- All_Pollutants %>% group_by(Year) %>% summarize(mean = mean(NO2_ppb, na.rm= TRUE), SD = sd(NO2_ppb, na.rm=TRUE), SE = (sd(NO2_ppb, na.rm=TRUE)/sqrt(n())))
+
+NO2_County_Yr <- All_Pollutants %>% group_by(County, Year) %>% summarize(mean = mean(NO2_ppb, na.rm=T), SD = sd(NO2_ppb, na.rm=T), SE = (sd(NO2_ppb, na.rm=T)/sqrt(n())))
+
+NO2_County_MYr <- All_Pollutants %>% group_by(County, Month_Year) %>% summarize(mean = mean(NO2_ppb, na.rm=T), SD = sd(NO2_ppb, na.rm=T), SE = (sd(NO2_ppb, na.rm=T)/sqrt(n())))
+
+#Ozone
+Ozone_County <- All_Pollutants %>% group_by(County) %>% summarize(mean = mean(Ozone_ppm, na.rm=TRUE), SD = sd(Ozone_ppm, na.rm=TRUE), SE = (sd(Ozone_ppm, na.rm=TRUE)/sqrt(n())))
+
+Ozone_Year <- All_Pollutants %>% group_by(Year) %>% summarize(mean = mean(Ozone_ppm, na.rm= TRUE), SD = sd(Ozone_ppm, na.rm=TRUE), SE = (sd(Ozone_ppm, na.rm=TRUE)/sqrt(n())))
+
+Ozone_County_Yr <- All_Pollutants %>% group_by(County, Year) %>% summarize(mean = mean(Ozone_ppm, na.rm=T), SD = sd(Ozone_ppm, na.rm=T), SE = (sd(Ozone_ppm, na.rm=T)/sqrt(n())))
+
+Ozone_County_MYr <- All_Pollutants %>% group_by(County, Month_Year) %>% summarize(mean = mean(Ozone_ppm, na.rm=T), SD = sd(Ozone_ppm, na.rm=T), SE = (sd(Ozone_ppm, na.rm=T)/sqrt(n())))
+
+#EV Data Year
+EV_2020 <- EV_Pops %>% filter(Year == 2020)
+EV_2021 <- EV_Pops %>% filter(Year == 2021)
+EV_2022 <- EV_Pops %>% filter(Year == 2022)
+```
+
+
+## Choropleth Map
+
+```{r}
+states <- map_data("state")
+calif <- subset(states, region == "california")
+
+#County Lines & Base Map
+ca_counties <- subset(map_data("county"), region == "california")
+
+ca_base <- ggplot(data=calif, mapping = aes(x = long, y = lat, group = group)) + coord_fixed(1.3) + 
+geom_polygon(color = "black", fill = "white") + 
+theme(panel.background = element_blank(), axis.text = element_blank(), axis.ticks = element_blank(), axis.title = element_blank(), panel.border = element_blank(), panel.grid = element_blank())
+
+ca_base <- ca_base + geom_polygon(data = ca_counties, fill = NA, color = "black") + geom_polygon(color = "black", fill = NA)
+
+#Merging Data W California Counties
+AQI_map <- merge(ca_counties, AQI_County, by.x = 'subregion', by.y = 'County')
+AQI_map <- arrange(AQI_map, group, order)
+
+HAPs_map <- merge(ca_counties, HAPs_County, by.x = 'subregion', by.y = 'County')
+HAPs_map <- arrange(HAPs_map, group, order)
+
+NO2_map <- merge(ca_counties, NO2_County, by.x = 'subregion', by.y = 'County')
+NO2_map <- arrange(NO2_map, group, order)
+
+Ozone_map <- merge(ca_counties, Ozone_County, by.x = 'subregion', by.y = 'County')
+Ozone_map <- arrange(Ozone_map, group, order)
+
+EV_2020_map <- merge(ca_counties, EV_2020, by.x = 'subregion', by.y = 'County')
+EV_2020_map <- arrange(EV_2020_map, group, order)
+
+EV_2021_map <- merge(ca_counties, EV_2021, by.x = 'subregion', by.y = 'County')
+EV_2021_map <- arrange(EV_2021_map, group, order)
+  
+EV_2022_map <- merge(ca_counties, EV_2022, by.x = 'subregion', by.y = 'County')
+EV_2022_map <- arrange(EV_2022_map, group, order)
+
+# One Way
+ggplot(AQI_map, aes(group = group, fill = mean)) +
+  geom_polygon(colour = "black") +
+  labs(fill = 'AQI Mean') +
+  coord_map("polyconic")
+
+#Another Way
+ca_base + 
+  geom_polygon(data = AQI_map, aes(fill = mean), color = "white") + 
+  scale_fill_distiller(type="div", direction = 1, labels = scales::percent_format(accuracy = 1),) +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'AQI Mean')
+
+#Another Way - Okay
+ca_base + 
+  geom_polygon(data = AQI_map, aes(fill = mean), color = "white") + 
+  scale_fill_gradient(name="mean", low = 'lightgoldenrod', high = 'turquoise4', na.value = "white", breaks = c(0, max(AQI_map$mean))) +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'AQI Mean')
+
+#Another Way - Okay
+ca_base + 
+  geom_polygon(data = AQI_map, aes(fill = mean), color = "white") + 
+  scale_fill_distiller(palette = "YlOrBr") +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'AQI Mean')
+
+#Another Way - So Far The Best
+ca_base + 
+  geom_polygon(data = AQI_map, aes(fill = mean), color = "white") + 
+  scale_fill_viridis_c(option = "magma") +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'AQI Mean')
+
+#For HAPs
+ca_base + 
+  geom_polygon(data = HAPs_map, aes(fill = mean), color = "white") + 
+  scale_fill_distiller() +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'HAPs Mean')
+
+#For NO2
+ca_base + 
+  geom_polygon(data = NO2_map, aes(fill = mean), color = "white") + 
+  scale_fill_distiller() +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'NO2 Mean')
+
+# For Ozone
+ca_base + 
+  geom_polygon(data = Ozone_map, aes(fill = mean), color = "white") + 
+  scale_fill_distiller() +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'Ozone Mean')
+
+#For EVs
+
+#2020
+ca_base + 
+  geom_polygon(data = EV_2020_map, aes(fill = Total_EVs), color = "white") + 
+  scale_fill_distiller(limits = c(min(EV_Pops$Total_EVs), max(EV_Pops$Total_EVs))) +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'Registered EVs - 2020')
+
+ca_base + 
+  geom_polygon(data = EV_2020_map, aes(fill = EV_Totals_1000), color = "white") + 
+  scale_fill_distiller(limits = c(min(EV_Pops$EV_Totals_1000), max(EV_Pops$EV_Totals_1000))) +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'Registered EVs - 2020 (Per 1000)')
+
+#2021
+ca_base + 
+  geom_polygon(data = EV_2021_map, aes(fill = Total_EVs), color = "white") + 
+  scale_fill_distiller(limits = c(min(EV_Pops$Total_EVs), max(EV_Pops$Total_EVs))) +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'Registered EVs - 2021')
+
+ca_base + 
+  geom_polygon(data = EV_2021_map, aes(fill = EV_Totals_1000), color = "white") + 
+  scale_fill_distiller(limits = c(min(EV_Pops$EV_Totals_1000), max(EV_Pops$EV_Totals_1000))) +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'Registered EVs - 2021 (Per 1000)')
+
+#2022
+ca_base + 
+  geom_polygon(data = EV_2022_map, aes(fill = Total_EVs), color = "white") + 
+  scale_fill_distiller(limits = c(min(EV_Pops$Total_EVs), max(EV_Pops$Total_EVs))) +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'Registered EVs - 2022')
+
+ca_base + 
+  geom_polygon(data = EV_2022_map, aes(fill = EV_Totals_1000), color = "white") + 
+  scale_fill_distiller(limits = c(min(EV_Pops$EV_Totals_1000), max(EV_Pops$EV_Totals_1000))) +
+  geom_polygon(color = "black", fill = NA) +
+  labs(fill = 'Registered EVs - 2022 (Per 1000)')
+
+```
+
+## More Data Graphing
+
+```{r}
+#Data is Mostly normal when broken down into pieces or have log transformation applied
+ggqqplot(AQI_County$mean) #The stuff at the end is weird but it's almost normal
+ggqqplot(HAPs_County$mean) #Not Normal
+ggqqplot(Ozone_County$mean) #Almost Normal
+ggqqplot(NO2_County$mean) #Almost Normal
+ggqqplot(log(EV_2020$EV_Totals_1000))
+ggqqplot(log(EV_2021$EV_Totals_1000)) 
+ggqqplot(log(EV_2022$EV_Totals_1000))
+
+#Creating File For Year With EV Data
+mean_list <- list(AQI_County_Yr, HAPs_County_Yr, NO2_County_Yr, Ozone_County_Yr, EV_Pops)
+everything <- mean_list %>% reduce(full_join, by=c('County','Year'))
+colnames(everything) = c('County', 'Year', 'AQI_Mean', 'AQI_SD', 'AQI_SE', 'HAPs_Mean', 'HAPs_SD','HAPs_SE','NO2_Mean', 'NO2_SD', 'NO2_SE', 'Ozone_Mean', 'Ozone_SD', 'Ozone_SE', 'Total_EVs', 'Population', 'EV_Totals_1000')
+
+#Quickplot The Relationships
+qplot(data=everything,EV_Totals_1000,AQI_Mean)
+qplot(data=everything,EV_Totals_1000,HAPs_Mean)
+qplot(data=everything,EV_Totals_1000, NO2_Mean)
+qplot(data=everything,EV_Totals_1000, Ozone_Mean)
+ggplot(everything, aes(x=EV_Totals_1000, y = AQI_Mean)) + geom_point() + facet_wrap(facets = vars(Year))
+ggplot(everything, aes(x=EV_Totals_1000, y = HAPs_Mean)) + geom_point() + facet_wrap(facets = vars(Year))
+ggplot(everything, aes(x=EV_Totals_1000, y = NO2_Mean)) + geom_point() + facet_wrap(facets = vars(Year))
+ggplot(everything, aes(x=EV_Totals_1000, y = Ozone_Mean)) + geom_point() + facet_wrap(facets = vars(Year))
+
+#Testing Linear Correlation
+cor.test(everything$EV_Totals_1000,everything$AQI_Mean) #Yes
+cor.test(everything$EV_Totals_1000, everything$HAPs_Mean) #No correlation
+cor.test(everything$EV_Totals_1000, everything$NO2_Mean) #No correlation
+cor.test(everything$EV_Totals_1000, everything$Ozone_Mean) #Yes
+
+#Outliers
+plot <- everything %>% ggplot(aes(AQI_Mean, AQI_Mean)) + geom_boxplot()
+plot <- everything %>% ggplot(aes(Ozone_Mean, Ozone_Mean)) + geom_boxplot()
+Q <- quantile(everything$AQI_Mean, probs=c(0.25, 0.75), na.rm=TRUE)
+```
+
+## Regression Trees
+```{r}
+tree <- rpart(Ozone_Mean ~ EV_Totals_1000, data = everything, control = rpart.control(cp = 0.0001))
+printcp(tree)
+best <- tree$cptable[which.min(tree$cptable[,"xerror"]),"CP"]
+pruned_tree <- prune(tree, cp=best)
+prp(pruned_tree, faclen=0, extra =1, roundint=F, digits=5)
+```
+
