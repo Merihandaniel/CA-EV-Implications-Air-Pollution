@@ -2,6 +2,8 @@
 
 To assess the relationship between the adoption of zero-emission vehicles and the reduction of air pollution in California, correlations between average county pollutant levels measured at Federal Reference Method (FRM) air monitoring sites and total zero-emission vehicle sales and registrations were analyzed over the three-year period of 2019 - 2022. This analysis comprised three parts: correlation, regression, and regression trees.
 
+# Introduction
+
 Electric vehicles offer several advantages, including reduced emissions, improved energy efficiency, and decreased reliance on fossil fuels. An article titled "California’s early transition to electric vehicles" on sciencedirect.com highlights the health benefits of EVs. The study analyzed real-world data from California and found that areas with more electric vehicle registrations had lower pollution and fewer asthma-related emergency room visits. Increasing the proportion of electric vehicles could lead to a 3.2% annual decrease in asthma-related ED visits. Additionally, another article on sciencedirect.com, "Air Quality impacts from electrification of Light-Duty passenger vehicles in the United States," examined the impact of EVs on air quality. It considered the source of energy generation and found that the net benefit of EVs varied by region, but overall, the transition to electric transportation reduced air pollution, even when accounting for energy generation from fossil fuels. These findings are important for informing environmental policies.
 
 The data was analyzed in a three step regression process: correlation, linear regression, and regression trees.
@@ -21,7 +23,9 @@ Additionally, the linear regression  performed in R for AQI and Ozone mean yield
 
 Lastly, the results of the Decision Tree showed that if a county has a number of electric vehicles greater or equal to that 14.07 EV per 1000 people, I would expect to see an AQI of 44.76. If the number of EV is less than 14.07, the AQI. I could expect to see is 57.54. On the other hand, for any county that has greater than or equal to 21.84 EV per 1000, I would expect to see ozone levels of 0.02571, otherwise, 0.03174. Therefore, as presented by these results, I can say that the increase in the total number of EV could help decrease the levels of AQI and Ozone which would improve air quality overall.
 
-![Alt Text](Decision Trees.png)
+![Alt Text](DecisionTrees.png)
+
+# Conclusion
 
 This study shows that increasing electric vehicle (EV) adoption is associated with improved Air Quality Index (AQI) and Ozone Levels, benefiting air quality. However, it does not find a significant link between EV adoption and Nitrogen Dioxide (NO2) and Hazardous Air Pollutants (HAPS) levels. Other variables like wildfires, geography, and unknown factors may affect pollution dynamics in regions like California. The decline in gas combustion car registrations alongside rising EV numbers indicates a positive shift toward sustainable transportation. To better understand the relationship between air pollution and EVs, future research should consider factors like city density, weather conditions, and energy sources. This study highlights the complexity of pollution dynamics, emphasizing the need for ongoing research and informed policies to promote cleaner urban environments through sustainable transportation.
 
