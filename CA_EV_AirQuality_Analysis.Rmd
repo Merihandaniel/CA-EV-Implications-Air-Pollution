@@ -20,13 +20,13 @@ library(rpart.plot)
 ## Reading In All Data Sets
 
 ```{r}
-AQI_All <-read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/CA_AQI.csv")
-HAPs_All <- read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/CA_HAPs.csv")
-Ozone_All <- read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/CA_Ozone.csv")
-NO2_All <- read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/CA_NO2.csv")
-EV_Sales <- read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/Total_EV_sales_per_county.csv")
-EV_Pops <- read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/Total_EV_pop_per_county.csv")
-CA_Pop <- read.csv("/Users/amyv/Library/Mobile Documents/com~apple~CloudDocs/Documents/Documents - Amy’s MacBook Air/DU_Grad/Prob & Stats 1 (4441)/Project/CA_population.csv")
+AQI_All <-read.csv("CA_AQI.csv")
+HAPs_All <- read.csv("CA_HAPs.csv")
+Ozone_All <- read.csv("CA_Ozone.csv")
+NO2_All <- read.csv("CA_NO2.csv")
+EV_Sales <- read.csv("Total_EV_sales_per_county.csv")
+EV_Pops <- read.csv("Total_EV_pop_per_county.csv")
+CA_Pop <- read.csv("CA_population.csv")
 
 # Updating Names & Removing Columns 
 AQI_All <- AQI_All[,-1]
